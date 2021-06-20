@@ -4,6 +4,7 @@ import (
 	"os"
 	"log"
 	"fmt"
+	"encoding/json"
 	"net/http"
 	"html/template"
 	"github.com/joho/godotenv"
@@ -56,15 +57,12 @@ func HumanHandle(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, "false", 400)
 				return
 			}
-			str := human.StringData {
-				Data: r.FormValue("text"),
-			}
-			err := str.Insert()
+			bytes, err := json.Marshal(human.LangSplit(r.FormValue("text")))
 			if err != nil {
-				fmt.Fprintf(w, err.Error())
+				http.Error(w, err.Error(), 500)
 				return
 			}
-			fmt.Fprintf(w, "true")
+			fmt.Fprintf(w, string(bytes))
 		} else {
 			http.Error(w, "parameter not enough", 400)
 		}

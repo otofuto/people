@@ -18,17 +18,20 @@
                     <p><input type="text" name="text"></p>
                     <p><button>送信</button></p>
                 </form>
+                <pre id="resp"></pre>
             </main>
         </div>
         <script>
             function send() {
                 let data = new FormData(document.fm);
                 formDisabled(document.fm, true);
-                post('/human/1')
+                post('/human/1', data)
                 .then(res => {
                     console.log(res);
                     formDisabled(document.fm, false);
                     document.fm.text.value = '';
+                    document.getElementById('resp').innerHTML = '';
+                    res.forEach(s => document.getElementById('resp').appendChild(document.createTextNode(s + "\n")));
                 }).catch(err => {
                     console.error(err);
                     formDisabled(document.fm, false);
