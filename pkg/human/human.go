@@ -2,7 +2,7 @@ package human
 
 import (
 	"log"
-	"github.com/otofuto/human/pkg/database"
+	"github.com/otofuto/people/pkg/database"
 )
 
 type StringData struct {
@@ -42,7 +42,7 @@ func (sd *StringData) Insert() error {
 	}
 	defer ins.Close()
 
-	_, err := ins.Exec(&sd.Human, &sd.Data, &sd.Tension, &sd.Human, &sd.Data)
+	_, err = ins.Exec(&sd.Human, &sd.Data, &sd.Tension, &sd.Human, &sd.Data)
 	if err != nil {
 		log.Println("human.go (sd *StringData) Insert()")
 		log.Println(err)
@@ -53,7 +53,7 @@ func (sd *StringData) Insert() error {
 	return nil
 }
 
-func (sd *StringData) Big(big string) err {
+func (sd *StringData) AddBig(big string) error {
 	db := database.Connect()
 	defer db.Close()
 
@@ -67,7 +67,7 @@ func (sd *StringData) Big(big string) err {
 	}
 	defer ins.Close()
 
-	_, err := ins.Exec(&sd.Data, &big, &sd.Data, &big)
+	_, err = ins.Exec(&sd.Data, &big, &sd.Data, &big)
 	if err != nil {
 		log.Println("human.go (sd *StringData) Big(big string)")
 		log.Println(err)

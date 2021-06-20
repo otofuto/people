@@ -3,6 +3,7 @@ package database
 import (
 	"fmt"
 	"os"
+	"math"
 	"database/sql"
 	"strings"
 	_ "github.com/go-sql-driver/mysql"

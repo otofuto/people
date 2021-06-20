@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"log"
+	"fmt"
 	"net/http"
 	"html/template"
 	"github.com/joho/godotenv"
@@ -24,6 +25,7 @@ func main() {
 
 	http.Handle("/st/", http.StripPrefix("/st/", http.FileServer(http.Dir("./static"))))
 	http.HandleFunc("/", IndexHandle)
+	http.HandleFunc("/human/", HumanHandle)
 
 	log.Println("Listening on port: " + port)
 	log.Fatal(http.ListenAndServe(":" + port, nil))
@@ -42,4 +44,47 @@ func IndexHandle(w http.ResponseWriter, r *http.Request) {
 	} else {
 		http.Error(w, "method not allowed", 405)
 	}
+}
+
+func HumanHandle(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method == http.MethodPost {
+		r.ParseMultipartForm(32 << 20)
+		if isset(r, []string { "text" }) {
+			if r.FormValue("text") == "" {
+				http.Error(w, "false", 400)
+				return
+			}
+			str := human.StringData {
+				Data: r.FormValue("text"),
+			}
+			err := str.Insert()
+			if err != nil {
+				fmt.Fprintf(w, err.Error())
+				return
+			}
+			fmt.Fprintf(w, "true")
+		} else {
+			http.Error(w, "parameter not enough", 400)
+		}
+	} else {
+		http.Error(w, "method not allowed", 405)
+	}
+}
+
+//GETでは使えない
+func isset(r *http.Request, keys []string) bool {
+	for _, v := range keys {
+		exist := false
+		for k, _ := range r.MultipartForm.Value {
+			if v == k {
+				exist = true
+			}
+		}
+		if !exist {
+			return false
+		}
+	}
+	return true
 }
