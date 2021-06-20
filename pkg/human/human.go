@@ -1,39 +1,41 @@
 package human
 
 import (
-	"log"
 	"errors"
+	"log"
 	"strconv"
 	"strings"
+
 	"github.com/otofuto/people/pkg/database"
 )
 
 type Human struct {
-	Id int `json:"id"`
-	Name string `json:"name"`
-	Age int `json:"age"`
-	Tension int `json:"tension"`
+	Id      int    `json:"id"`
+	Name    string `json:"name"`
+	Age     int    `json:"age"`
+	Tension int    `json:"tension"`
 }
 
 type StringData struct {
-	Human int `json:"human"`
-	Data string `json:"data"`
-	Feel int `json:"feel"`
-	Equal string `json:"equal"`
-	Group []string `json:"group"`
-	Big []string `json:"big"`
-	Not []string `json:"not"`
-	Then []string `json:"then"`
-	InCount int `json:"in_count"`
-	OutCount int `json:"out_count"`
+	Human    int      `json:"human"`
+	Data     string   `json:"data"`
+	Feel     int      `json:"feel"`
+	Equal    string   `json:"equal"`
+	Group    []string `json:"group"`
+	Big      []string `json:"big"`
+	Not      []string `json:"not"`
+	Then     []string `json:"then"`
+	Next     []string `json:"next"`
+	InCount  int      `json:"in_count"`
+	OutCount int      `json:"out_count"`
 }
 
 type IntData struct {
-	Human int `json:"human"`
-	Data int `json:"data"`
-	Then []string `json:"then"`
-	InCount int `json:"in_count"`
-	OutCount int `json:"out_count"`
+	Human    int      `json:"human"`
+	Data     int      `json:"data"`
+	Then     []string `json:"then"`
+	InCount  int      `json:"in_count"`
+	OutCount int      `json:"out_count"`
 }
 
 func (sd *StringData) Insert() error {
@@ -62,8 +64,12 @@ func (sd *StringData) Insert() error {
 }
 
 func (sd *StringData) AddParam(param, val string) error {
-	if param != "group" && param != "big" && param != "not" && param != "then" {
+	if param != "group" && param != "big" && param != "not" && param != "then" && param != "next" {
 		return errors.New("Invalid param name")
+	}
+
+	if param == "next" {
+		return sd.AddNext(val)
 	}
 
 	db := database.Connect()
@@ -82,6 +88,31 @@ func (sd *StringData) AddParam(param, val string) error {
 	_, err = ins.Exec(&sd.Human, &sd.Data, &val)
 	if err != nil {
 		log.Println("human.go (sd *StringData) AddParam(param, val string)")
+		log.Println(err)
+		log.Println(sql)
+		return err
+	}
+
+	return nil
+}
+
+func (sd *StringData) AddNext(val string) error {
+	db := database.Connect()
+	defer db.Close()
+
+	sql := "insert into `string_data_than` (`human`, `data`, `next`) values (?, ?, ?)"
+	ins, err := db.Prepare(sql)
+	if err != nil {
+		log.Println("human.go (sd *StringData) AddNext(val string)")
+		log.Println(err)
+		log.Println(sql)
+		return err
+	}
+	defer ins.Close()
+
+	_, err = ins.Exec(&sd.Human, &sd.Data, &val)
+	if err != nil {
+		log.Println("human.go (sd *StringData) AddNext(val string)")
 		log.Println(err)
 		log.Println(sql)
 		return err
@@ -142,11 +173,12 @@ func (id *IntData) AddThen(then string) error {
 
 func LangSplit(text string) []string {
 	ret1 := make([]string, 0)
-	ml := []string { " ", "　", "\n", "、", "。", ":", "：", "=", "<", ">", "+", "?", "？", "#", "!", "！", "・", "…" }
+	ml := []string{" ", "　", "\n", "、", "。", ":", "：", "=", "<", ">", "+", "?", "？", "#", "!", "！", "・", "…"}
 	word := ""
 	for _, s := range strings.Split(text, "") {
 		if isMatch(s, ml) {
 			ret1 = append(ret1, word)
+			ret1 = append(ret1, s)
 			word = ""
 		} else {
 			word += s
@@ -177,7 +209,7 @@ func LangSplit(text string) []string {
 					lastHarf = false
 					lastHiragana = false
 					lastKatakana = false
-					lastKanji= false
+					lastKanji = false
 				}
 			} else if r <= 255 {
 				if lastHarf {
@@ -191,7 +223,7 @@ func LangSplit(text string) []string {
 					lastHarf = true
 					lastHiragana = false
 					lastKatakana = false
-					lastKanji= false
+					lastKanji = false
 				}
 			} else if isHiragana(r) || (lastHiragana && r == 12540) {
 				if lastHiragana {
@@ -205,7 +237,7 @@ func LangSplit(text string) []string {
 					lastHarf = false
 					lastHiragana = true
 					lastKatakana = false
-					lastKanji= false
+					lastKanji = false
 				}
 			} else if isKatakana(r) || (lastKatakana && r == 12540) {
 				if lastKatakana {
@@ -219,7 +251,7 @@ func LangSplit(text string) []string {
 					lastHarf = false
 					lastHiragana = false
 					lastKatakana = true
-					lastKanji= false
+					lastKanji = false
 				}
 			} else if isKanji(r) {
 				if lastKanji {
@@ -233,7 +265,7 @@ func LangSplit(text string) []string {
 					lastHarf = false
 					lastHiragana = false
 					lastKatakana = false
-					lastKanji= true
+					lastKanji = true
 				}
 			} else {
 				if wd != "" && (lastHarf || lastHiragana || lastKatakana || lastKanji) {
@@ -261,19 +293,20 @@ func LangSplit(text string) []string {
 			continue
 		}
 		var count int
-		for count = 1; ret1[i - count] == "" && i > count; count++ {}
-		last := []rune(ret1[i - count])[0]
+		for count = 1; ret1[i-count] == "" && i > count; count++ {
+		}
+		last := []rune(ret1[i-count])[0]
 		if (isHiragana(current) && isKanji(last)) ||
 			(isKatakana(current) && isKanji(last)) ||
 			(isKanji(current) && isNumber(last)) ||
 			(current <= 255 && last <= 255) {
-			ret1[i - 1] = ret1[i - 1] + word
+			ret1[i-1] = ret1[i-1] + word
 			ret1[i] = ""
 		}
 	}
 	ret2 = make([]string, 0)
 	for _, word = range ret1 {
-		if word != "" {
+		if word != "" && !isMatch(word, ml) {
 			ret2 = append(ret2, word)
 		}
 	}
