@@ -156,8 +156,9 @@ func LangSplit(text string) []string {
 		ret1 = append(ret1, word)
 	}
 	ret2 := make([]string, 0)
+	wd := ""
 	for _, word = range ret1 {
-		wd := ""
+		wd = ""
 		lastInt := false
 		lastHarf := false
 		lastHiragana := false
@@ -249,6 +250,31 @@ func LangSplit(text string) []string {
 		}
 		if wd != "" {
 			ret2 = append(ret2, wd)
+		}
+	}
+	ret1 = make([]string, 0)
+	wd = ""
+	for i, word := range ret2 {
+		ret1 = append(ret1, word)
+		current := []rune(word)[0]
+		if i == 0 {
+			continue
+		}
+		var count int
+		for count = 1; ret1[i - count] == "" && i > count; count++ {}
+		last := []rune(ret1[i - count])[0]
+		if (isHiragana(current) && isKanji(last)) ||
+			(isKatakana(current) && isKanji(last)) ||
+			(isKanji(current) && isNumber(last)) ||
+			(current <= 255 && last <= 255) {
+			ret1[i - 1] = ret1[i - 1] + word
+			ret1[i] = ""
+		}
+	}
+	ret2 = make([]string, 0)
+	for _, word = range ret1 {
+		if word != "" {
+			ret2 = append(ret2, word)
 		}
 	}
 	return ret2
