@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ja">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width">
+        <title>HumanProject</title>
+        <link rel="stylesheet" href="/st/css/style.css">
+        <script src="/st/js/master.js"></script>
+    </head>
+    <body>
+        <div id="container">
+            <header>
+                <div>
+                </div>
+            </header>
+            <main>
+                <form name="fm" onsubmit="send(); return false;">
+                    <p><input type="text" name="text"></p>
+                    <p><button>送信</button></p>
+                </form>
+            </main>
+        </div>
+        <script>
+            function send() {
+                let data = new FormData(document.fm);
+                formDisabled(document.fm, true);
+                post('/human/1')
+                .then(res => {
+                    console.log(res);
+                    formDisabled(document.fm, false);
+                    document.fm.text.value = '';
+                }).catch(err => {
+                    console.error(err);
+                    formDisabled(document.fm, false);
+                    alert('エラー');
+                });
+            }
+        </script>
+    </body>
+</html>
