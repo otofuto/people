@@ -59,6 +59,13 @@ func HumanHandle(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			datas := human.LangSplit(r.FormValue("text"))
+			/*err := human.SaveWords(1, datas)
+			if err != nil {
+				log.Println("main.go HumanHandle(w http.ResponseWriter, r *http.Request)")
+				log.Println(err)
+				http.Error(w, err.Error(), 500)
+				return
+			}*/
 			bytes, err := json.Marshal(datas)
 			if err != nil {
 				http.Error(w, err.Error(), 500)

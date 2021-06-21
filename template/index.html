@@ -34,6 +34,7 @@
                     document.fm.text.value = '';
                     document.getElementById('resp').innerHTML = '';
                     res.forEach(s => document.getElementById('resp').appendChild(document.createTextNode(s.data + '(' + String.fromCharCode(s.action[0]) + ')' + "\n")));
+                    document.fm.text.focus();
                 }).catch(err => {
                     console.error(err);
                     formDisabled(document.fm, false);
