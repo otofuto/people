@@ -33,7 +33,7 @@
                     formDisabled(document.fm, false);
                     document.fm.text.value = '';
                     document.getElementById('resp').innerHTML = '';
-                    res.forEach(s => document.getElementById('resp').appendChild(document.createTextNode(s.data + '(' + String.fromCharCode(s.action[0]) + ')' + "\n")));
+                    res.forEach(s => document.getElementById('resp').appendChild(document.createTextNode('(' + String.fromCharCode(s.action[0]) + ') ' + s.data + "\n")));
                     document.fm.text.focus();
                 }).catch(err => {
                     console.error(err);
