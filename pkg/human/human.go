@@ -26,6 +26,7 @@ type StringData struct {
 	Not      []string `json:"not"`
 	Then     []string `json:"then"`
 	Next     []string `json:"next"`
+	Action   []int    `json:"action"`
 	InCount  int      `json:"in_count"`
 	OutCount int      `json:"out_count"`
 }
@@ -64,12 +65,15 @@ func (sd *StringData) Insert() error {
 }
 
 func (sd *StringData) AddParam(param, val string) error {
-	if param != "group" && param != "big" && param != "not" && param != "then" && param != "next" {
+	if param != "group" && param != "big" && param != "not" && param != "then" && param != "next" && param != "action" {
 		return errors.New("Invalid param name")
 	}
 
 	if param == "next" {
 		return sd.AddNext(val)
+	}
+	if param == "action" {
+		return sd.AddAction(val)
 	}
 
 	db := database.Connect()
@@ -113,6 +117,31 @@ func (sd *StringData) AddNext(val string) error {
 	_, err = ins.Exec(&sd.Human, &sd.Data, &val)
 	if err != nil {
 		log.Println("human.go (sd *StringData) AddNext(val string)")
+		log.Println(err)
+		log.Println(sql)
+		return err
+	}
+
+	return nil
+}
+
+func (sd *StringData) AddAction(val string) error {
+	db := database.Connect()
+	defer db.Close()
+
+	sql := "insert into `string_data_than` (`human`, `data`, `action`) values (?, ?, ?)"
+	ins, err := db.Prepare(sql)
+	if err != nil {
+		log.Println("human.go (sd *StringData) AddAction(val string)")
+		log.Println(err)
+		log.Println(sql)
+		return err
+	}
+	defer ins.Close()
+
+	_, err = ins.Exec(&sd.Human, &sd.Data, &val)
+	if err != nil {
+		log.Println("human.go (sd *StringData) AddAction(val string)")
 		log.Println(err)
 		log.Println(sql)
 		return err
@@ -171,9 +200,9 @@ func (id *IntData) AddThen(then string) error {
 	return nil
 }
 
-func LangSplit(text string) []string {
+func LangSplit(text string) []StringData {
 	ret1 := make([]string, 0)
-	ml := []string{" ", "　", "\n", "、", "。", ":", "：", "=", "<", ">", "+", "?", "？", "#", "!", "！", "・", "…"}
+	ml := []string{" ", "　", "\r", "\n", "、", "。", ":", "：", "=", "<", ">", "+", "?", "？", "#", "!", "！", "・", "…"}
 	word := ""
 	for _, s := range strings.Split(text, "") {
 		if isMatch(s, ml) {
@@ -296,21 +325,33 @@ func LangSplit(text string) []string {
 		for count = 1; ret1[i-count] == "" && i > count; count++ {
 		}
 		last := []rune(ret1[i-count])[0]
-		if (isHiragana(current) && isKanji(last)) ||
-			(isKatakana(current) && isKanji(last)) ||
+		if ((isHiragana(current) || current == 12540) && isKanji(last)) ||
+			((isKatakana(current) || current == 12540) && isKanji(last)) ||
 			(isKanji(current) && isNumber(last)) ||
 			(current <= 255 && last <= 255) {
 			ret1[i-1] = ret1[i-1] + word
 			ret1[i] = ""
 		}
 	}
-	ret2 = make([]string, 0)
+	sds := make([]StringData, 0)
+	ml2 := []string{"\n", "、", "。", "!", "！", "…", "?", "？"}
 	for _, word = range ret1 {
-		if word != "" && !isMatch(word, ml) {
-			ret2 = append(ret2, word)
+		if strings.TrimSpace(word) != "" {
+			if isMatch(word, ml2) {
+				act := []rune(word)[0]
+				for i := len(sds) - 1; i >= 0 && sds[i].Action[0] == 0; i-- {
+					sds[i].Action[0] = int(act)
+				}
+			}
+			if !isMatch(word, ml) {
+				sds = append(sds, StringData{
+					Data:   strings.TrimSpace(word),
+					Action: []int{0},
+				})
+			}
 		}
 	}
-	return ret2
+	return sds
 }
 
 func isMatch(s string, match []string) bool {

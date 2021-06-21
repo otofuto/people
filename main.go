@@ -1,12 +1,13 @@
 package main
 
 import (
-	"os"
-	"log"
-	"fmt"
 	"encoding/json"
-	"net/http"
+	"fmt"
 	"html/template"
+	"log"
+	"net/http"
+	"os"
+
 	"github.com/joho/godotenv"
 	"github.com/otofuto/people/pkg/human"
 )
@@ -29,7 +30,7 @@ func main() {
 	http.HandleFunc("/human/", HumanHandle)
 
 	log.Println("Listening on port: " + port)
-	log.Fatal(http.ListenAndServe(":" + port, nil))
+	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
 
 func IndexHandle(w http.ResponseWriter, r *http.Request) {
@@ -37,7 +38,7 @@ func IndexHandle(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method == http.MethodGet {
 		temp := template.Must(template.ParseFiles("template/index.html"))
-		if err := temp.Execute(w, TempContext {}); err != nil {
+		if err := temp.Execute(w, TempContext{}); err != nil {
 			log.Println(err)
 			http.Error(w, "HTTP 500 Internal server error", 500)
 			return
@@ -52,12 +53,13 @@ func HumanHandle(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method == http.MethodPost {
 		r.ParseMultipartForm(32 << 20)
-		if isset(r, []string { "text" }) {
+		if isset(r, []string{"text"}) {
 			if r.FormValue("text") == "" {
 				http.Error(w, "false", 400)
 				return
 			}
-			bytes, err := json.Marshal(human.LangSplit(r.FormValue("text")))
+			datas := human.LangSplit(r.FormValue("text"))
+			bytes, err := json.Marshal(datas)
 			if err != nil {
 				http.Error(w, err.Error(), 500)
 				return
