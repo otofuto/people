@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ja">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width">
+        <title>drop tweet.js | HumanProject</title>
+        <link rel="stylesheet" href="/st/css/style.css">
+        <script src="/st/js/master.js"></script>
+    </head>
+    <body>
+        <div id="container">
+            <header>
+                <div>
+                </div>
+            </header>
+            <main>
+                <form name="fm" onsubmit="return false;">
+                    <p>スタートする行</p>
+                    <p><input type="number" name="start" value="0"></p>
+                    <p>tweet.jsを選択して読み込む</p>
+                    <p><input type="file" name="file" style="display: none;" onchange="changeFile(this)"></p>
+                </form>
+                <p id="count"></p>
+                <textarea id="textarea" style="width: 420px; height: 200px;"></textarea>
+                <p>↓覚えた単語↓</p>
+                <ul id="resp"></ul>
+            </main>
+        </div>
+        <script>
+            if (window.File && window.FileReader && window.FileList && window.Blob) {
+                document.fm.file.removeAttribute('style');
+            } else {
+                alert('お使いのブラウザではこの機能はサポートされておりません。');
+            }
+
+            if (localStorage.getItem('importTweetLine') != null)
+            {
+                document.fm.start.value = localStorage.getItem('importTweetLine');
+            }
+
+            async function send(arr) {
+                let data = new FormData();
+                for (let i = 0; i < arr.length; i++) {
+                    data.append('text[]', arr[i]);
+                }
+                return new Promise((resolve, reject) => {
+                    post('/human/arr/1', data)
+                    .then(res => {
+                        resolve(res);
+                    }).catch(err => {
+                        reject(err);
+                    });
+                });
+            }
+
+            async function postArray(part0) {
+                part0 = part0.filter(p0 =>
+                    !p0.tweet.full_text.startsWith('RT @') &&
+                    p0.tweet.in_reply_to_user_id == null &&
+                    p0.tweet.full_text.indexOf('http://') < 0 &&
+                    p0.tweet.full_text.indexOf('https://') < 0 &&
+                    typeof p0.tweet.entities.media == 'undefined');
+                count.innerText = '0/' + part0.length;
+                let sendarray = [];
+                for (let i = document.fm.start.value - 0; i < part0.length; i++) {
+                    sendarray.push(part0[i].tweet.full_text);
+                    if (sendarray.length >= 50) {
+                        var result = await send(sendarray);
+                        console.log(result);
+                        count.innerText = (i + 1) + '/' + part0.length;
+                        localStorage.setItem('importTweetLine', i + 1);
+                        sendarray = [];
+                    }
+                }
+                /*if (sendarray.length > 0) {
+                    var result = await send(sendarray);
+                    console.log(result);
+                    formDisabled(document.fm, false);
+                    alert('完了');
+                }*/
+            }
+
+            function changeFile(elm) {
+                if (elm.files.length == 0) return;
+                textarea = document.getElementById('textarea');
+                count = document.getElementById('count');
+
+                if (elm.files[0].name != "tweet.js") {
+                    alert('ファイル名が違います。');
+                    return;
+                }
+
+                elm.files[0].text()
+                .then(text => {
+                    if (text.startsWith("window.YTD.tweet.part0 = ")) {
+                        if (!confirm('データの送信を開始します。\n完了するまでページを閉じたり遷移いないでください。')) return;
+                        formDisabled(document.fm, true);
+                        postArray(JSON.parse(text.substring("window.YTD.tweet.part0 = ".length)));
+                    } else {
+                        alert('内容を読み取れません。');
+                    }
+                });
+            }
+        </script>
+    </body>
+</html>

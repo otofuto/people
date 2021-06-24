@@ -7,8 +7,11 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
+	"strings"
 
 	"github.com/joho/godotenv"
+	"github.com/otofuto/people/pkg/database"
 	"github.com/otofuto/people/pkg/human"
 )
 
@@ -28,6 +31,7 @@ func main() {
 	http.Handle("/st/", http.StripPrefix("/st/", http.FileServer(http.Dir("./static"))))
 	http.HandleFunc("/", IndexHandle)
 	http.HandleFunc("/human/", HumanHandle)
+	http.HandleFunc("/drop/", DropHandle)
 
 	log.Println("Listening on port: " + port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
@@ -52,28 +56,131 @@ func HumanHandle(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	if r.Method == http.MethodPost {
+		arr := false
+		mode := r.URL.Path[len("/human/"):]
+		if strings.HasPrefix(mode, "arr/") {
+			arr = true
+			mode = mode[len("arr/"):]
+		}
+		hid, err := strconv.Atoi(mode)
+		if err != nil {
+			http.Error(w, "human id is not set", 400)
+			return
+		}
 		r.ParseMultipartForm(32 << 20)
-		if isset(r, []string{"text"}) {
+		if isset(r, []string{"text", "from"}) && !arr {
 			if r.FormValue("text") == "" {
 				http.Error(w, "false", 400)
 				return
 			}
-			datas := human.LangSplit(r.FormValue("text"))
-			/*err := human.SaveWords(1, datas)
+			db := database.Connect()
+			defer db.Close()
+
+			datas := human.LangSplit(db, r.FormValue("text"))
+			/*err = human.SaveWords(db, hid, datas)
 			if err != nil {
 				log.Println("main.go HumanHandle(w http.ResponseWriter, r *http.Request)")
 				log.Println(err)
 				http.Error(w, err.Error(), 500)
 				return
 			}*/
-			bytes, err := json.Marshal(datas)
+			talked := ""
+			isq := false
+			for i, sd := range datas {
+				if i > 1 {
+					if datas[i-2].Data+datas[i-1].Data == sd.Data {
+						continue
+					}
+				}
+				sd.Human = hid
+				tk1, err := human.ResponseString(db, sd)
+				if err != nil {
+					http.Error(w, err.Error(), 500)
+					return
+				}
+				talked += tk1.Talked
+				if tk1.IsQuestion {
+					isq = true
+				}
+			}
+			if isq {
+				talked += "？"
+			}
+			tk := human.Talk{
+				Opponent:   r.FormValue("from"),
+				Human:      hid,
+				Heard:      r.FormValue("text"),
+				Talked:     talked,
+				IsQuestion: isq,
+			}
+			if err != nil {
+				log.Println("main.go HumanHandle(w http.ResponseWriter, r *http.Request)")
+				log.Println(err)
+				http.Error(w, err.Error(), 500)
+				return
+			}
+			err = tk.Insert(db)
+			if err != nil {
+				http.Error(w, err.Error(), 500)
+				return
+			}
+			resp := struct {
+				Sds  []human.StringData `json:"sds"`
+				Talk human.Talk         `json:"talk"`
+			}{
+				Sds:  datas,
+				Talk: tk,
+			}
+			bytes, err := json.Marshal(resp)
 			if err != nil {
 				http.Error(w, err.Error(), 500)
 				return
 			}
 			fmt.Fprintf(w, string(bytes))
+		} else if arr && isset(r, []string{"text[]"}) {
+			for k, v := range r.MultipartForm.Value {
+				if "text[]" == k {
+					db := database.Connect()
+					defer db.Close()
+
+					for _, text := range v {
+						datas := human.LangSplit(db, text)
+						err = human.SaveWords(db, hid, datas)
+						if err != nil {
+							log.Println("main.go HumanHandle(w http.ResponseWriter, r *http.Request)")
+							log.Println(err)
+							http.Error(w, err.Error(), 500)
+							return
+						}
+					}
+					break
+				}
+			}
+			fmt.Fprintf(w, "true")
 		} else {
 			http.Error(w, "parameter not enough", 400)
+		}
+	} else {
+		http.Error(w, "method not allowed", 405)
+	}
+}
+
+func DropHandle(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html")
+
+	if r.Method == http.MethodGet {
+		filename := r.URL.Path[len("/drop/"):]
+		if strings.HasSuffix(filename, "/") {
+			filename = filename[:len(filename)-1]
+		}
+		if filename == "" {
+			filename = "index"
+		}
+		temp := template.Must(template.ParseFiles("template/drop/" + filename + ".html"))
+		if err := temp.Execute(w, TempContext{}); err != nil {
+			log.Println(err)
+			http.Error(w, "HTTP 500 Internal server error", 500)
+			return
 		}
 	} else {
 		http.Error(w, "method not allowed", 405)

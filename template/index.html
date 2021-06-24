@@ -14,11 +14,19 @@
                 </div>
             </header>
             <main>
+                <p><a href="/drop/tweet/">tweet.jsファイルを流し込む</a></p>
                 <form name="fm" onsubmit="send(); return false;">
-                    <p><input type="text" name="text"></p>
+                    <p>文章を送信して日本語を学習させる</p>
+                    <p><input type="text" name="text" placeholder="文章を入力" autocomplete="off"></p>
+                    <input type="hidden" name="from" value="nozomi">
                     <p><button>送信</button></p>
                 </form>
-                <pre id="resp"></pre>
+                <p>↓送信した文章↓</p>
+                <p id="sended"></p>
+                <p>↓返答↓</p>
+                <p id="talk"></p>
+                <p>↓覚えた単語↓</p>
+                <ul id="resp"></ul>
             </main>
         </div>
         <script>
@@ -32,8 +40,14 @@
                     console.log(res);
                     formDisabled(document.fm, false);
                     document.fm.text.value = '';
+                    document.getElementById('sended').innerText = res.talk.heard;
+                    document.getElementById('talk').innerText = res.talk.talked;
                     document.getElementById('resp').innerHTML = '';
-                    res.forEach(s => document.getElementById('resp').appendChild(document.createTextNode('(' + String.fromCharCode(s.action[0]) + ') ' + s.data + "\n")));
+                    res.sds.forEach(s => {
+                        let p = document.createElement('li');
+                        p.innerText = s.data;
+                        document.getElementById('resp').appendChild(p);
+                    });
                     document.fm.text.focus();
                 }).catch(err => {
                     console.error(err);
