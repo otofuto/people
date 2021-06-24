@@ -86,19 +86,24 @@ func HumanHandle(w http.ResponseWriter, r *http.Request) {
 			}*/
 			talked := ""
 			isq := false
-			for i, sd := range datas {
-				if i > 1 {
-					if datas[i-2].Data+datas[i-1].Data == sd.Data {
-						continue
-					}
-				}
-				sd.Human = hid
-				tk1, err := human.ResponseString(db, sd)
+			for i := len(datas) - 1; i >= 0; i-- {
+				datas[i].Human = hid
+				tk1, err := human.ResponseString(db, datas[i])
 				if err != nil {
 					http.Error(w, err.Error(), 500)
 					return
 				}
-				talked += tk1.Talked
+				if i > 1 {
+					if datas[i].Data == datas[i-2].Data+datas[i-1].Data {
+						if tk1.Talked == datas[i].Data {
+							continue
+						}
+					}
+				}
+				if tk1.Talked == datas[i].Data {
+					continue
+				}
+				talked = tk1.Talked + talked
 				if tk1.IsQuestion {
 					isq = true
 				}
