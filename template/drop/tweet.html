@@ -64,7 +64,7 @@
                 let sendarray = [];
                 for (let i = document.fm.start.value - 0; i < part0.length; i++) {
                     sendarray.push(part0[i].tweet.full_text);
-                    if (sendarray.length >= 5) {
+                    if (sendarray.length >= 1) {
                         var result = await send(sendarray);
                         console.log(result);
                         count.innerText = (i + 1) + '/' + part0.length;
@@ -72,12 +72,6 @@
                         sendarray = [];
                     }
                 }
-                /*if (sendarray.length > 0) {
-                    var result = await send(sendarray);
-                    console.log(result);
-                    formDisabled(document.fm, false);
-                    alert('完了');
-                }*/
             }
 
             function changeFile(elm) {
