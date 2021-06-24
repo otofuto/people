@@ -29,7 +29,8 @@
                 </div>
             </header>
             <main>
-                <p><a href="/drop/tweet/">tweet.jsファイルを流し込む</a></p>
+                <p>プログラム最終更新: 2021/06/24</p>
+                <p id="tweet" style="display: none;"><a href="/drop/tweet/">tweet.jsファイルを流し込む</a></p>
                 <form name="fm" onsubmit="send(); return false;">
                     <p>文章を送信して日本語を学習させる</p>
                     <p><input type="text" name="text" placeholder="文章を入力" autocomplete="off"></p>
@@ -45,6 +46,7 @@
             </main>
         </div>
         <script>
+            if (location.host == 'localhost:5000') document.getElementById('tweet').removeAttribute('style');
             resp = {};
             function send() {
                 let data = new FormData(document.fm);
